@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WINK EXPRESS - Clôtures de Caisse</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --clr-primary: #FF7F50; 
+            --clr-secondary: #2C3E50; 
+            --clr-accent: #4A6491;
+            --clr-background: #F8F9FA;
+            --clr-text: #34495E;
+        }
+        
+        body { 
+            background-color: var(--clr-background); 
+            font-family: sans-serif; 
+            display: flex; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Sidebar Styles --- */
+        .sidebar { 
+            width: 250px; 
+            background-color: var(--clr-secondary); 
+            min-height: 100vh; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            color: white; 
+            padding: 20px; 
+            transition: transform 0.3s ease; 
+            z-index: 1050; 
+        }
+        .sidebar-header {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--clr-accent);
+            margin-bottom: 20px;
+        }
+        .sidebar .nav-link { 
+            color: white; 
+            padding: 10px 15px; 
+            margin-bottom: 5px; 
+            border-radius: 5px; 
+            transition: background-color 0.2s;
+        }
+        .sidebar .nav-link:hover { 
+            background-color: var(--clr-accent); 
+        }
+        .sidebar .nav-link.active { 
+            background-color: var(--clr-primary); 
+        }
+
+        /* --- Main Content & Header Styles --- */
+        .main-content { 
+            margin-left: 250px; 
+            padding: 20px; 
+            flex-grow: 1; 
+            transition: margin-left 0.3s ease; 
+            display: flex; 
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .header { 
+            background-color: white; 
+            padding: 15px 20px; 
+            border-bottom: 1px solid #dee2e6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .toggler { 
+            font-size: 1.5rem; 
+            color: var(--clr-secondary); 
+            cursor: pointer; 
+        }
+
+        /* Responsive collapse */
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-250px); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        @media (min-width: 992px) {
+            .sidebar.collapsed { transform: translateX(-250px); }
+            .main-content.expanded { margin-left: 0; }
+        }
+
+        /* --- Custom Components --- */
+        .card { 
+            border-radius: 10px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08); 
+            border: none; 
+        }
+        .stat-card .card-title { 
+            font-size: 0.9rem; 
+            color: #6c757d; 
+            text-transform: uppercase; 
+        }
+        .stat-card .stat-value { 
+            font-size: 1.75rem; 
+            font-weight: 700; 
+        }
+        .table thead { 
+            background-color: var(--clr-secondary); 
+            color: white; 
+            position: sticky; 
+            top: 0; 
+        }
+        .table th, .table td { 
+            vertical-align: middle; 
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary-custom { 
+            background-color: var(--clr-primary); 
+            border-color: var(--clr-primary); 
+            color: white; 
+        }
+        .btn-primary-custom:hover { 
+            background-color: #FF6347; 
+            border-color: #FF6347; 
+            color: white; 
+        }
+        
+        /* Notification Toast Style */
+        #notification-container {
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 2000; 
+            width: 350px; 
+        }
+        
+        /* Responsive Filter Bar (Historique des Clôtures) */
+        @media (max-width: 767.98px) {
+            .history-filter-row {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            .history-filter-row > div {
+                width: 100%;
+                max-width: 100%;
+                margin-top: 10px;
+            }
+        }
+
+        /* Ajustement des cartes stat pour 5 colonnes sur grand écran */
+        @media (min-width: 1200px) {
+            .row.g-2 .col-lg {
+                width: 20%; /* 100% / 5 items */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="notification-container"></div>
+    
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header d-flex justify-content-center">
+            <img src="wink-logo.png" alt="Logo WINK EXPRESS" style="width: 150px;">
+        </div>
+        <nav class="nav flex-column mt-4">
+            <a class="nav-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Tableau de bord</a>
+            <a class="nav-link" href="orders.html"><i class="bi bi-box-seam"></i> Commandes</a>
+            <a class="nav-link" href="deliverymen.html"><i class="bi bi-bicycle"></i> Livreurs</a>
+            <a class="nav-link" href="shops.html"><i class="bi bi-shop"></i> Marchands</a>
+            <a class="nav-link" href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i> Rapports</a>
+            
+            <a class="nav-link" href="cashiers_remittances.html"><i class="bi bi-person-check"></i> Versements Livreurs</a>
+            <a class="nav-link" href="cashiers_expenses.html"><i class="bi bi-currency-exchange"></i> Dépenses & Décaissements</a>
+            <a class="nav-link active" href="cashiers_closings.html"><i class="bi bi-safe"></i> Clôtures de Caisse</a>
+            <a class="nav-link" href="remittances.html"><i class="bi bi-wallet"></i> Versements Marchands</a>
+            <a class="nav-link" href="debts.html"><i class="bi bi-journal-x"></i> Créances Marchands</a>
+            
+            <a class="nav-link" href="users.html"><i class="bi bi-person"></i> Utilisateurs</a>
+        </nav>
+        <div class="mt-auto pt-3 border-top border-secondary">
+            <div class="d-flex align-items-center">
+                <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                <span id="userName">{{username}}</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content" id="main-content">
+        <header class="header">
+            <i class="bi bi-list toggler" id="sidebar-toggler"></i>
+            <h1 class="h4 mb-0 ms-3 flex-grow-1">Clôtures de Caisse</h1>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                    <span id="headerUserName">Admin</span>
+                </a>
+                <ul class="dropdown-menu text-small shadow">
+                    <li><a class="dropdown-item" href="#" id="logoutBtn">Déconnexion</a></li>
+                </ul>
+            </div>
+        </header>
+
+        <section class="card p-3 mb-4">
+            <h5 class="mb-3">Situation de la caisse</h5>
+            <div class="row g-2 align-items-stretch">
+                
+                <div class="col-lg"><div class="stat-card text-center"><h6 class="card-title">Encaissé</h6><p class="stat-value text-success" id="db-total-collected">0 FCFA</p></div></div>
+                
+                <div class="col-lg"><div class="stat-card text-center"><h6 class="card-title">Dépenses</h6><p class="stat-value text-danger" id="db-total-expenses">0 FCFA</p></div></div>
+                
+                <div class="col-lg"><div class="stat-card text-center"><h6 class="card-title">Décaissements</h6><p class="stat-value text-warning" id="db-total-withdrawals">0 FCFA</p></div></div>
+                
+                <div class="col-lg"><div class="stat-card text-center"><h6 class="card-title">Créances Remboursées</h6><p class="stat-value text-success" id="db-paid-debts">0 FCFA</p></div></div>
+                
+                <div class="col-lg"><div class="stat-card text-center bg-light rounded p-2"><h6 class="card-title">Montant en Caisse</h6><p class="stat-value text-primary" id="db-cash-on-hand">0 FCFA</p></div></div>
+            </div>
+        </section>
+
+        <section class="card p-4 flex-grow-1 d-flex flex-column">
+            <div class="row">
+                <div class="col-lg-5 border-end">
+                    <h6 class="mb-3">Clôturer une journée</h6>
+                    <form id="closeCashForm">
+                        <div class="mb-3"><label for="closeDate" class="form-label">Date à clôturer</label><input type="date" class="form-control" id="closeDate" required></div>
+                        <div class="mb-3"><label for="actualAmount" class="form-label">Montant total compté en caisse</label><input type="number" class="form-control" id="actualAmount" required></div>
+                        <div class="mb-3"><label for="closeComment" class="form-label">Commentaire</label><textarea class="form-control" id="closeComment" rows="2"></textarea></div>
+                        <div class="d-grid"><button type="submit" class="btn btn-primary-custom">Clôturer la journée</button></div>
+                    </form>
+                </div>
+                <div class="col-lg-7">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap history-filter-row">
+                        <h6 class="mb-0">Historique des Clôtures</h6>
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="input-group input-group-sm w-auto">
+                                <span class="input-group-text">Du</span>
+                                <input type="date" class="form-control" id="historyStartDate">
+                            </div>
+                            <div class="input-group input-group-sm w-auto">
+                                <span class="input-group-text">Au</span>
+                                <input type="date" class="form-control" id="historyEndDate">
+                            </div>
+                            <button class="btn btn-sm btn-outline-success ms-lg-2" id="exportHistoryBtn"><i class="bi bi-file-earmark-spreadsheet"></i> Exporter</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table table-sm table-striped">
+                            <thead><tr><th>Date</th><th>Attendu</th><th>Compté</th><th>Différence</th><th>Action</th></tr></thead>
+                            <tbody id="closingsHistoryTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="js/cashiers_closings.js"></script>
+</body>
+</html>

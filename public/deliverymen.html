@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WINK EXPRESS - Performance des Livreurs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --clr-primary: #FF7F50; 
+            --clr-secondary: #2C3E50; 
+            --clr-accent: #4A6491;
+            --clr-background: #F8F9FA; 
+            --clr-text: #34495E;
+        }
+        body { 
+            background-color: var(--clr-background); 
+            font-family: sans-serif; 
+            display: flex; 
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* --- Sidebar Styles --- */
+        .sidebar { 
+            width: 250px; 
+            background-color: var(--clr-secondary); 
+            min-height: 100vh; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            color: white; 
+            padding: 20px; 
+            transition: transform 0.3s ease; 
+            z-index: 1050; 
+        }
+        .sidebar-header {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--clr-accent);
+            margin-bottom: 20px;
+        }
+        .sidebar .nav-link { 
+            color: white; 
+            padding: 10px 15px; 
+            margin-bottom: 5px; 
+            border-radius: 5px; 
+            transition: background-color 0.2s;
+        }
+        .sidebar .nav-link:hover { 
+            background-color: var(--clr-accent); 
+        }
+        .sidebar .nav-link.active { 
+            background-color: var(--clr-primary); 
+        }
+        
+        /* --- Main Content & Header Styles --- */
+        .main-content { 
+            margin-left: 250px; 
+            padding: 20px; 
+            flex-grow: 1; 
+            transition: margin-left 0.3s ease; 
+            display: flex; 
+            flex-direction: column;
+            position: relative;
+        }
+        
+        /* Collapsed state */
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-250px); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        @media (min-width: 992px) {
+            .sidebar.collapsed { transform: translateX(-250px); }
+            .main-content.expanded { margin-left: 0; }
+        }
+        
+        .header { 
+            background-color: white; 
+            padding: 15px 20px; 
+            border-bottom: 1px solid #dee2e6; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .toggler { 
+            font-size: 1.5rem; 
+            color: var(--clr-secondary); 
+            cursor: pointer; 
+        }
+        
+        /* --- Card Styles --- */
+        .card { 
+            border: none; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        }
+        .stat-block .card-header { 
+            background-color: var(--clr-secondary); 
+            color: white; 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            border-radius: 12px 12px 0 0;
+            padding: 0.75rem 1rem;
+        }
+        .stat-card-sm { 
+            text-align: center; 
+            padding: 1rem 0.5rem; 
+            border-right: 1px solid #eee;
+        }
+        .stat-card-sm:last-child {
+            border-right: none;
+        }
+        .stat-card-sm .stat-value { 
+            font-size: 1.5rem; 
+            font-weight: 700; 
+            color: var(--clr-secondary); 
+            margin-bottom: 0;
+        }
+        .stat-card-sm .stat-label { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            color: #6c757d; 
+            margin-top: 0;
+        }
+        
+        /* --- Table Styles --- */
+        .table thead { 
+            background-color: var(--clr-secondary); 
+            color: white; 
+            font-size: 0.8rem; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1; 
+        }
+        .table th, .table td {
+            vertical-align: middle;
+            font-size: 0.85rem;
+            padding: 0.75rem 1rem;
+        }
+        .distinction { 
+            display: inline-block; 
+            width: 28px; 
+            text-align: center; 
+            margin-right: 5px;
+        }
+        .distinction-icon { 
+            font-size: 1.2rem; 
+        }
+        .gold { color: #FFD700; } 
+        .silver { color: #C0C0C0; } 
+        .bronze { color: #CD7F32; }
+        
+        /* --- Filter Card Styles --- */
+        .filter-card-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            padding: 1rem;
+        }
+        .filter-card-body .form-label {
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+        .filter-card-body .form-control-sm,
+        .filter-card-body .btn-sm {
+            height: calc(1.5em + 0.5rem + 2px);
+        }
+
+        /* Responsive filter layout */
+        @media (min-width: 992px) {
+            .filter-card-body > div {
+                flex: 1 1 auto;
+                min-width: 150px;
+            }
+            .filter-card-body .col-lg-auto {
+                flex: 0 0 auto;
+            }
+        }
+        @media (max-width: 767.98px) {
+            .filter-card-body {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-card-body > div {
+                width: 100%;
+            }
+        }
+
+        /* General Buttons */
+        .btn-primary-custom {
+            background-color: var(--clr-primary);
+            border-color: var(--clr-primary);
+            color: white;
+        }
+        .btn-primary-custom:hover {
+            background-color: #FF6347;
+            border-color: #FF6347;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header d-flex justify-content-center">
+            <img src="wink-logo.png" alt="Logo WINK EXPRESS" style="width: 150px;">
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Tableau de bord</a>
+            <a class="nav-link" href="orders.html"><i class="bi bi-box-seam"></i> Commandes</a>
+            <a class="nav-link active" href="deliverymen.html"><i class="bi bi-bicycle"></i> Livreurs</a>
+            <a class="nav-link" href="shops.html"><i class="bi bi-shop"></i> Marchands</a>
+            <a class="nav-link" href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i> Rapports</a>
+            
+            <a class="nav-link" href="cashiers_remittances.html"><i class="bi bi-person-check"></i> Versements Livreurs</a>
+            <a class="nav-link" href="cashiers_expenses.html"><i class="bi bi-currency-exchange"></i> Dépenses & Décaissements</a>
+            <a class="nav-link" href="cashiers_closings.html"><i class="bi bi-safe"></i> Clôtures de Caisse</a>
+            <a class="nav-link" href="remittances.html"><i class="bi bi-wallet"></i> Versements Marchands</a>
+            <a class="nav-link" href="debts.html"><i class="bi bi-journal-x"></i> Créances Marchands</a>
+            
+            <a class="nav-link" href="users.html"><i class="bi bi-person"></i> Utilisateurs</a>
+        </nav>
+        <div class="mt-auto pt-3 border-top border-secondary">
+            <div class="d-flex align-items-center">
+                <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                <span id="userName">{{username}}</span>
+            </div>
+        </div>
+    </aside>
+
+
+    <main class="main-content" id="main-content">
+        <header class="header">
+            <i class="bi bi-list toggler" id="sidebar-toggler"></i>
+            <h1 class="h4 mb-0 ms-3 flex-grow-1">Performance des Livreurs</h1>
+            <div class="header-actions dropdown">
+                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                    <span id="headerUserName">Admin</span>
+                </a>
+                <ul class="dropdown-menu text-small shadow"><li><a class="dropdown-item" href="#" id="logoutBtn">Déconnexion</a></li></ul>
+            </div>
+        </header>
+
+        <section class="row g-3 mb-4">
+            <div class="col-lg-6">
+                <div class="card stat-block h-100">
+                    <div class="card-header">Activité des Livreurs (Période)</div>
+                    <div class="card-body p-2">
+                        <div class="row gx-0">
+                            <div class="col-3 stat-card-sm">
+                                <p id="total-deliverymen" class="stat-value">0</p>
+                                <p class="stat-label">Total</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="working-deliverymen" class="stat-value text-success">0</p>
+                                <p class="stat-label">Actifs</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="absent-deliverymen" class="stat-value text-danger">0</p>
+                                <p class="stat-label">Absents</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="availability-rate" class="stat-value text-info">0%</p>
+                                <p class="stat-label">Disponibilité</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                 <div class="card stat-block h-100">
+                    <div class="card-header">Statut des Courses (Période)</div>
+                    <div class="card-body p-2">
+                        <div class="row gx-0">
+                            <div class="col-3 stat-card-sm">
+                                <p id="received-courses" class="stat-value">0</p>
+                                <p class="stat-label">Reçues</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="inprogress-courses" class="stat-value text-warning">0</p>
+                                <p class="stat-label">En Cours</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="delivered-courses" class="stat-value text-success">0</p>
+                                <p class="stat-label">Livrées</p>
+                            </div>
+                            <div class="col-3 stat-card-sm">
+                                <p id="canceled-courses" class="stat-value text-danger">0</p>
+                                <p class="stat-label">Annulées</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="card mb-4">
+            <div class="filter-card-body">
+                <div class="flex-grow-1">
+                    <label for="searchInput" class="form-label form-label-sm">Rechercher</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="Nom du livreur..." id="searchInput">
+                </div>
+                <div>
+                    <label for="startDate" class="form-label form-label-sm">Date de début</label>
+                    <input type="date" id="startDate" class="form-control form-control-sm">
+                </div>
+                <div>
+                    <label for="endDate" class="form-label form-label-sm">Date de fin</label>
+                    <input type="date" id="endDate" class="form-control form-control-sm">
+                </div>
+                <div class="col-lg-auto d-grid">
+                    <button id="filterBtn" class="btn btn-sm btn-primary-custom"><i class="bi bi-funnel me-1"></i> Filtrer</button>
+                </div>
+            </div>
+        </section>
+        
+        <section class="card flex-grow-1">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Livreur</th>
+                                <th>Reçues</th>
+                                <th class="text-warning">En Cours</th>
+                                <th class="text-danger">Annulées</th>
+                                <th class="text-success">Livrées</th>
+                                <th class="text-end">CA Généré (Frais)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliverymenTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/deliverymen.js"></script>
+</body>
+</html>

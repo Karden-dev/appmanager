@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const endDateInput = document.getElementById('endDate');
     const globalSearchInput = document.getElementById('globalSearchInput');
     const filterBtn = document.getElementById('filterBtn');
-    const refreshBtn = document.getElementById('refreshBtn'); // Référence au bouton Actualiser
+    // Le bouton refreshBtn n'est plus utilisé
 
     const summaryTableBody = document.getElementById('summaryTableBody');
     const shortfallsTableBody = document.getElementById('shortfallsTableBody');
@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const editExpenseModal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
     const editWithdrawalModal = new bootstrap.Modal(document.getElementById('editWithdrawalModal'));
 
-    // Modales ajoutées/modifiées (Récupération des éléments DOM pour éviter un crash)
     const confirmAmountModal = new bootstrap.Modal(document.getElementById('confirmAmountModal'));
     const confirmAmountForm = document.getElementById('confirmAmountForm');
     const confirmAmountInput = document.getElementById('confirmAmountInput');
@@ -86,11 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- FONCTIONS UTILITAIRES ---
     
-    /**
-     * Affiche une notification toast stylisée.
-     * @param {string} message - Le message à afficher.
-     * @param {string} [type='success'] - Le type d'alerte (success, danger, warning, info).
-     */
     const showNotification = (message, type = 'success') => {
         const container = document.getElementById('notification-container');
         if (!container) return;
@@ -100,26 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
         alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
         container.appendChild(alertDiv);
         
-        // Fermeture automatique pour l'effet "toast"
         setTimeout(() => {
             const bsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
             bsAlert.close();
         }, 4000); 
     };
 
-    /**
-     * Formate un montant en FCFA avec séparateur de milliers.
-     * @param {number|string} amount - Le montant à formater.
-     * @returns {string} Le montant formaté.
-     */
     const formatAmount = (amount) => `${Number(amount || 0).toLocaleString('fr-FR')} FCFA`;
     
-    /**
-     * Retarde l'exécution d'une fonction (debounce).
-     * @param {Function} func - La fonction à exécuter.
-     * @param {number} [delay=500] - Le délai d'attente en millisecondes.
-     * @returns {Function} La fonction debounced.
-     */
     const debounce = (func, delay = 500) => {
         let timeout;
         return (...args) => {
@@ -132,19 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FONCTIONS DE CHARGEMENT DES DONNÉES ---
 
-    /**
-     * Détermine l'onglet actif et lance la récupération des données correspondantes.
-     */
     const applyFiltersAndRender = async () => {
-        
-        // Stocker l'icône d'origine du bouton d'actualisation s'il existe
-        let originalIcon = null;
-        if (refreshBtn) {
-            originalIcon = refreshBtn.innerHTML;
-            refreshBtn.disabled = true;
-            // Ajouter un spinner
-            refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-        }
+        const originalText = filterBtn.innerHTML;
+        filterBtn.disabled = true;
+        filterBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Filtrage...';
 
         try {
             const activeTab = document.querySelector('#cashTabs .nav-link.active');
@@ -183,16 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
              console.error("Erreur lors de l'actualisation des données:", error);
              showNotification("Erreur lors de l'actualisation des données.", "danger");
         } finally {
-            if (refreshBtn) {
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = originalIcon;
-            }
+            filterBtn.disabled = false;
+            filterBtn.innerHTML = originalText;
         }
     };
 
-    /**
-     * Récupère les métriques globales de la caisse pour la période donnée.
-     */
     const fetchCashMetrics = async (startDate, endDate) => {
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/metrics`, { params: { startDate, endDate } });
@@ -210,9 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    /**
-     * Récupère et affiche le résumé des versements des livreurs.
-     */
     const fetchAndRenderSummary = async (startDate, endDate, search) => {
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/remittance-summary`, { params: { startDate, endDate, search } });
@@ -236,32 +201,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Récupère et affiche la liste des manquants des livreurs (shortfalls).
+     * MISE À JOUR : Affiche les manquants avec le nouveau format de date et de statut.
      */
     const fetchAndRenderShortfalls = async (search) => {
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/shortfalls`, { params: { search } });
-            shortfallsTableBody.innerHTML = res.data.length === 0 ? `<tr><td colspan="5" class="text-center p-3">Aucun manquant en attente.</td></tr>` : '';
+            shortfallsTableBody.innerHTML = res.data.length === 0 ? `<tr><td colspan="6" class="text-center p-3">Aucun manquant en attente.</td></tr>` : '';
             res.data.forEach(item => {
                 const row = document.createElement('tr');
+                const settledDate = item.settled_at ? moment(item.settled_at).format('DD/MM/YYYY HH:mm') : '—';
+                
+                const statusInfo = {
+                    pending: { text: 'En attente', class: 'text-warning', icon: 'bi-clock-history' },
+                    settled: { text: 'Réglé', class: 'text-success', icon: 'bi-check-circle-fill' },
+                };
+                const currentStatus = statusInfo[item.status] || { text: item.status, class: '', icon: 'bi-question-circle' };
+                const statusBadge = `<span class="${currentStatus.class}"><i class="bi ${currentStatus.icon} me-1"></i>${currentStatus.text}</span>`;
+
                 row.innerHTML = `
                     <td>${item.deliveryman_name}</td>
                     <td class="text-danger fw-bold">${formatAmount(item.amount)}</td>
-                    <td><span class="badge bg-warning text-dark">${item.status}</span></td>
+                    <td>${statusBadge}</td>
                     <td>${moment(item.created_at).format('DD/MM/YYYY')}</td>
-                    <td><button class="btn btn-sm btn-success settle-btn" data-id="${item.id}" data-amount="${item.amount}">Régler</button></td>
+                    <td>${settledDate}</td>
+                    <td>
+                        ${item.status === 'pending' ? `<button class="btn btn-sm btn-success settle-btn" data-id="${item.id}" data-amount="${item.amount}">Régler</button>` : ''}
+                    </td>
                 `;
                 shortfallsTableBody.appendChild(row);
             });
         } catch (error) {
-            shortfallsTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger p-4">Erreur de chargement.</td></tr>`;
+            shortfallsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger p-4">Erreur de chargement.</td></tr>`;
             throw error;
         }
     };
 
-    /**
-     * Récupère et affiche les dépenses ou les décaissements manuels.
-     */
     const fetchAndRenderTransactions = async (type, tableBody, startDate, endDate, search) => {
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/transactions`, { params: { type, startDate, endDate, search } });
@@ -290,14 +264,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    /**
-     * Récupère et affiche l'historique des clôtures de caisse.
-     */
     const fetchClosingHistory = async () => {
         const startDate = document.getElementById('historyStartDate').value;
         const endDate = document.getElementById('historyEndDate').value;
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/closing-history`, { params: { startDate, endDate } });
+            // MISE À JOUR : Vérifier que res.data est bien un tableau
+            if (!Array.isArray(res.data)) {
+                 closingsHistoryTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Format de données invalide.</td></tr>`;
+                 return;
+            }
             closingsHistoryTableBody.innerHTML = res.data.length === 0 ? `<tr><td colspan="4" class="text-center p-3">Aucun historique.</td></tr>` : '';
             res.data.forEach(item => {
                 const difference = parseFloat(item.difference || 0);
@@ -317,9 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    /**
-     * Récupère la liste des utilisateurs et les catégories de dépenses.
-     */
     const fetchInitialData = async () => {
         try {
             const [usersRes, categoriesRes] = await Promise.all([
@@ -340,9 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- GESTION DES ÉVÉNEMENTS ---
 
-    /**
-     * Gère les événements des formulaires de transactions (dépense/décaissement).
-     */
     const handleTransactionFormSubmit = (form, endpoint, successMsg) => async (e) => {
         e.preventDefault();
         const formData = {};
@@ -377,9 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Gère la soumission des formulaires de modification (dépense/décaissement).
-     */
     const handleEditFormSubmit = (type) => async (e) => {
         e.preventDefault();
         const amount = document.getElementById(`edit${type}Amount`).value;
@@ -396,9 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * NOUVEAU : Fonction pour afficher les détails de versement filtrés et groupés.
-     */
     const renderRemittanceDetails = (filter = 'all') => {
         const tableBody = document.getElementById('modalTransactionsTableBody');
         tableBody.innerHTML = '';
@@ -413,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Grouper par date
         const groupedByDate = filteredData.reduce((acc, tx) => {
             const date = moment(tx.created_at).format('YYYY-MM-DD');
             if (!acc[date]) {
@@ -424,23 +387,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }, {});
 
         for (const date in groupedByDate) {
-            // Ligne de titre pour la date
             const dateRow = document.createElement('tr');
             dateRow.innerHTML = `<td colspan="6" class="bg-light text-dark fw-bold">${moment(date).format('dddd D MMMM YYYY')}</td>`;
             tableBody.appendChild(dateRow);
 
-            // Lignes pour chaque transaction de cette date
             groupedByDate[date].forEach(tx => {
                 const row = document.createElement('tr');
                 
-                // Logique d'affichage du montant : 0 si en attente
                 const displayAmount = tx.status === 'pending' ? 0 : Math.abs(tx.amount);
                 
                 const orderTotal = parseFloat(tx.order_total_amount || 0);
                 const shippingCost = parseFloat(tx.expedition_fee || 0); 
                 const netAmountDue = orderTotal - shippingCost; 
 
-                // Logique d'affichage du statut avec icônes et couleurs
                 const statusInfo = {
                     pending: { text: 'En attente', class: 'text-warning', icon: 'bi-clock-history' },
                     confirmed: { text: 'Confirmé', class: 'text-success', icon: 'bi-check-circle-fill' },
@@ -456,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </small>
                 `;
                 
-                // Logique d'affichage des actions en menu déroulant
                 const actionsHtml = `
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -484,26 +442,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Gère l'affichage des détails de versement pour un livreur.
-     */
     const handleRemittanceDetails = async (deliverymanId, deliverymanName) => {
         document.getElementById('modalDeliverymanName').textContent = deliverymanName;
-        document.querySelector('input[name="detailsFilter"][value="all"]').checked = true; // Réinitialiser le filtre sur "Tous"
+        const filterRadio = document.querySelector('input[name="detailsFilter"][value="all"]');
+        if (filterRadio) {
+            filterRadio.checked = true;
+        }
         
         try {
             const res = await axios.get(`${API_BASE_URL}/cash/remittance-details/${deliverymanId}`, { params: { startDate: startDateInput.value, endDate: endDateInput.value } });
-            currentRemittanceDetails = res.data; // Mettre en cache les données reçues
-            renderRemittanceDetails('all'); // Afficher tous les détails par défaut
+            currentRemittanceDetails = res.data;
+            renderRemittanceDetails('all');
             remittanceDetailsModal.show();
         } catch (error) {
             showNotification("Erreur au chargement des détails.", "danger");
         }
     };
     
-    /**
-     * Prépare et affiche la modale de confirmation des versements par lots.
-     */
     const handleConfirmBatch = () => {
         const selectedCheckboxes = document.querySelectorAll('#modalTransactionsTableBody .transaction-checkbox:checked');
         const transactionIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id);
@@ -520,9 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmAmountModal.show();
     };
     
-    /**
-     * Ouvre la modale de confirmation pour un seul versement.
-     */
     const handleConfirmSingleRemittance = (target) => {
         const txId = target.dataset.id;
         const expectedAmount = parseFloat(target.dataset.amount);
@@ -535,9 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmAmountModal.show();
     };
 
-    /**
-     * Gère la soumission du montant réel versé depuis la modale de confirmation (lots ou unique).
-     */
     const handleAmountConfirmationSubmit = async (e) => {
         e.preventDefault();
         
@@ -577,9 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    /**
-     * Gère la préparation de la modale de modification d'un versement.
-     */
     const handleEditRemittanceAmount = (target) => {
         transactionIdToEdit = target.dataset.id;
         const oldAmount = target.dataset.amount;
@@ -587,9 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
         editRemittanceAmountModal.show();
     };
 
-    /**
-     * Gère la soumission du formulaire de modification de versement.
-     */
     const handleEditRemittanceSubmit = async (e) => {
         e.preventDefault();
         const newAmount = editRemittanceAmountInput.value;
@@ -600,8 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Note : Cette route met à jour le montant de la commande, pas le versement.
-            // La logique côté serveur doit être adaptée si nécessaire.
             await axios.put(`${API_BASE_URL}/orders/${transactionIdToEdit}/amount`, { amount: newAmount });
             showNotification("Montant de la commande mis à jour.");
             editRemittanceAmountModal.hide(); 
@@ -612,9 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Gère la préparation de la modale de règlement d'un manquant.
-     */
     const handleSettleShortfall = (target) => {
         shortfallToSettle = { id: target.dataset.id, amountDue: parseFloat(target.dataset.amount) };
         shortfallDueDisplay.textContent = formatAmount(shortfallToSettle.amountDue);
@@ -622,9 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         settleShortfallModal.show();
     };
     
-    /**
-     * Gère la soumission du formulaire de règlement de manquant.
-     */
     const handleSettleShortfallSubmit = async (e) => {
         e.preventDefault();
         const amountPaid = settleShortfallAmountInput.value;
@@ -645,9 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Ouvre la modale d'édition de transaction (Dépense/Décaissement).
-     */
     const handleEditTransaction = (target) => {
         transactionIdToEdit = target.dataset.id;
         const type = target.dataset.type;
@@ -665,9 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Supprime une transaction.
-     */
     const handleDeleteTransaction = async (target) => {
         const txId = target.dataset.id;
         if (confirm('Voulez-vous vraiment supprimer cette transaction ?')) {
@@ -679,9 +608,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /**
-     * Réinitialise les champs de date dans les formulaires modales.
-     */
     const resetModalForms = () => {
         const today = new Date().toISOString().slice(0, 10);
         if (expenseDateInput) expenseDateInput.value = today;
@@ -689,9 +615,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (expenseUserSearchResults) expenseUserSearchResults.classList.add('d-none');
     };
     
-    /**
-     * Configure la recherche dynamique d'utilisateur pour la modale de dépense.
-     */
     const setupUserSearchExpense = () => {
         expenseUserSearchInput.addEventListener('input', () => {
             const searchTerm = expenseUserSearchInput.value.toLowerCase();
@@ -728,9 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    /**
-     * Initialise tous les écouteurs d'événements de l'interface.
-     */
     const initializeEventListeners = () => {
         sidebarToggler.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
@@ -744,7 +664,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         filterBtn.addEventListener('click', applyFiltersAndRender);
-        if (refreshBtn) refreshBtn.addEventListener('click', applyFiltersAndRender); 
         globalSearchInput.addEventListener('input', debounce(applyFiltersAndRender));
         document.querySelectorAll('#cashTabs .nav-link').forEach(tab => tab.addEventListener('shown.bs.tab', applyFiltersAndRender));
 
@@ -795,7 +714,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (const selector in actions) {
                 if (target.matches(selector)) {
-                    // e.preventDefault() for <a> tags, but check if it's a link first
                     if (target.tagName === 'A' && target.getAttribute('href') === '#') {
                         e.preventDefault();
                     }
@@ -807,7 +725,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         confirmBatchBtn.addEventListener('click', handleConfirmBatch);
 
-        // NOUVEAU : Ajout de l'écouteur pour les filtres de la modale "Gérer"
         document.querySelectorAll('input[name="detailsFilter"]').forEach(radio => {
             radio.addEventListener('change', (e) => {
                 renderRemittanceDetails(e.target.value);

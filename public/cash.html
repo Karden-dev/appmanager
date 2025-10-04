@@ -303,11 +303,10 @@
                         <input type="text" class="form-control" id="globalSearchInput" placeholder="Rechercher dans l'onglet actif...">
                     </div>
                 </div>
-                <div class="col-lg-2 d-grid d-flex gap-2">
+                <div class="col-lg-2 d-grid">
                     <button class="btn btn-sm btn-primary-custom flex-fill" id="filterBtn"><i class="bi bi-funnel me-1"></i>Filtrer</button>
-                    <button class="btn btn-sm btn-outline-secondary" id="refreshBtn" title="Actualiser les données"><i class="bi bi-arrow-clockwise"></i></button>
                 </div>
-                </div>
+            </div>
         </section>
 
         <section class="card p-3 flex-grow-1 d-flex flex-column">
@@ -326,7 +325,7 @@
                 </div>
                 <div class="tab-pane fade" id="shortfalls-panel">
                     <div class="table-responsive"><table class="table table-hover">
-                        <thead><tr><th>Livreur</th><th>Montant Manquant</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Livreur</th><th>Montant Manquant</th><th>Statut</th><th>Date Création</th><th>Date Règlement</th><th>Actions</th></tr></thead>
                         <tbody id="shortfallsTableBody"></tbody>
                     </table></div>
                 </div>
@@ -430,10 +429,8 @@
                     <div class="btn-group btn-group-sm" role="group">
                         <input type="radio" class="btn-check" name="detailsFilter" id="filterAll" value="all" autocomplete="off" checked>
                         <label class="btn btn-outline-secondary" for="filterAll">Tous</label>
-
                         <input type="radio" class="btn-check" name="detailsFilter" id="filterPending" value="pending" autocomplete="off">
                         <label class="btn btn-outline-primary" for="filterPending">En attente</label>
-
                         <input type="radio" class="btn-check" name="detailsFilter" id="filterConfirmed" value="confirmed" autocomplete="off">
                         <label class="btn btn-outline-primary" for="filterConfirmed">Confirmés</label>
                     </div>
@@ -524,13 +521,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editRemittanceAmountModalLabel">Modifier Montant Commande</h5>
+                    <h5 class="modal-title" id="editRemittanceAmountModalLabel">Modifier Montant Versement</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="editRemittanceForm">
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label for="editRemittanceAmountInput" class="form-label">Nouveau Montant Total de la Commande :</label>
+                            <label for="editRemittanceAmountInput" class="form-label">Nouveau Montant du Versement :</label>
                             <input type="number" class="form-control" id="editRemittanceAmountInput" required min="0" step="1">
                         </div>
                     </div>

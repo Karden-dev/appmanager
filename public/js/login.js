@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:3000/api';    
+    const API_BASE_URL = 'http://localhost:3000/api';
     // --- RÉFÉRENCES DOM ---
     const pinInputs = document.querySelectorAll('.pin-input');
     const hiddenPinInput = document.getElementById('pin');
@@ -31,7 +31,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
     const hideMessage = () => {
         loginMessage.classList.add('d-none');
     };
-    
+
     /**
      * Met à jour le champ caché 'pin' avec la valeur agrégée des inputs de PIN.
      */
@@ -51,17 +51,17 @@ const API_BASE_URL = 'http://localhost:3000/api';
     };
 
     // --- LOGIQUE DE SAISIE PIN ---
-    
+
     /**
      * Configure la navigation et la saisie des champs PIN.
      */
     const setupPinInputs = () => {
         pinInputs.forEach((input, index) => {
-            
+
             // Écouteur principal pour la saisie et le changement
             const inputHandler = function() {
                 // Supprimer la classe d'erreur lors de la saisie
-                this.classList.remove('error'); 
+                this.classList.remove('error');
 
                 if (this.value.length === 1) {
                     this.classList.add('filled');
@@ -75,11 +75,11 @@ const API_BASE_URL = 'http://localhost:3000/api';
             };
 
             input.addEventListener('input', inputHandler);
-            
+
             // Écouteur pour la gestion du retour arrière (si on efface)
             input.addEventListener('keyup', function(e) {
                 if (e.key === 'Backspace' && this.value === '' && index > 0) {
-                     // Si l'utilisateur efface, on retire la classe filled
+                    // Si l'utilisateur efface, on retire la classe filled
                     this.classList.remove('filled');
                     pinInputs[index - 1].focus();
                     updateHiddenPin(); // S'assurer que le champ caché est mis à jour
@@ -94,12 +94,12 @@ const API_BASE_URL = 'http://localhost:3000/api';
                     pinInputs[index + 1].focus();
                 }
             });
-            
+
             // Coller le PIN
             input.addEventListener('paste', function(e) {
                 e.preventDefault();
                 const pasteData = e.clipboardData.getData('text').slice(0, 4);
-                
+
                 for (let i = 0; i < pasteData.length; i++) {
                     if (index + i < pinInputs.length) {
                         pinInputs[index + i].value = pasteData[i];
@@ -107,7 +107,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
                         pinInputs[index + i].classList.remove('error');
                     }
                 }
-                
+
                 // Focus sur le dernier champ rempli ou le suivant
                 const lastFilledIndex = index + pasteData.length - 1;
                 if (lastFilledIndex < pinInputs.length - 1) {
@@ -115,7 +115,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
                 } else {
                     pinInputs[pinInputs.length - 1].focus();
                 }
-                
+
                 updateHiddenPin();
             });
         });
@@ -137,38 +137,39 @@ const API_BASE_URL = 'http://localhost:3000/api';
      */
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        
+
         hideMessage();
         spinner.classList.remove('d-none');
         submitButton.disabled = true;
 
         // Mettre à jour le PIN caché une dernière fois pour être sûr
-        updateHiddenPin(); 
+        updateHiddenPin();
         const pin = hiddenPinInput.value;
 
         if (pin.length !== 4) {
-             showMessage('Veuillez entrer un code PIN à 4 chiffres.');
-             spinner.classList.add('d-none');
-             submitButton.disabled = false;
-             pinInputs.forEach(input => input.classList.add('error'));
-             loginForm.classList.add('shake');
-             setTimeout(() => {
+            showMessage('Veuillez entrer un code PIN à 4 chiffres.');
+            spinner.classList.add('d-none');
+            submitButton.disabled = false;
+            pinInputs.forEach(input => input.classList.add('error'));
+            loginForm.classList.add('shake');
+            setTimeout(() => {
                 loginForm.classList.remove('shake');
             }, 1000);
-             return;
+            return;
         }
-        
+
         const phoneNumber = phoneNumberInput.value;
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/login`, { phoneNumber, pin });
-            
+            // ✅ CORRECTION ICI : /api/login est remplacé par /login
+            const response = await axios.post(`${API_BASE_URL}/login`, { phoneNumber, pin });
+
             if (response.status === 200) {
                 const storage = rememberMeCheckbox.checked ? localStorage : sessionStorage;
                 storage.setItem('user', JSON.stringify(response.data.user));
 
                 showMessage('Connexion réussie ! Redirection...', 'success');
-                
+
                 window.location.href = 'dashboard.html';
             }
         } catch (error) {
@@ -186,7 +187,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
             }, 1000);
         }
     };
-    
+
     // --- INITIALISATION ---
     setupPinInputs();
     loginForm.addEventListener('submit', handleLoginSubmit);

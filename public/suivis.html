@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WINK EXPRESS - Suivis Commandes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#FF7F50">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/wink-icon-192x192.png">
+    <meta name="apple-mobile-web-app-status-bar" content="#2C3E50">
+    <style>
+        :root {
+            --clr-primary: #FF7F50;
+            --clr-secondary: #2C3E50;
+            --clr-accent: #4A6491;
+            --clr-background: #F8F9FA;
+            --clr-text: #34495E;
+            --clr-light-gray: #e9ecef;
+            --clr-system-message: #f0f8ff; /* AliceBlue */
+            --clr-urgent-border: #dc3545; /* Rouge pour urgent */
+        }
+        body { background-color: var(--clr-background); font-family: sans-serif; display: flex; min-height: 100vh; overflow: hidden; }
+
+        /* --- Styles Sidebar & Header --- */
+        .sidebar { width: 250px; background-color: var(--clr-secondary); min-height: 100vh; position: fixed; top: 0; left: 0; color: white; padding: 20px; transition: transform 0.3s ease; z-index: 1050; }
+        .sidebar-header { padding-bottom: 20px; border-bottom: 1px solid var(--clr-accent); margin-bottom: 20px; }
+        .sidebar .nav-link { color: white; padding: 10px 15px; margin-bottom: 5px; border-radius: 5px; transition: background-color 0.2s; display: flex; align-items: center; }
+        .sidebar .nav-link:hover { background-color: var(--clr-accent); }
+        .sidebar .nav-link.active { background-color: var(--clr-primary); }
+        .sidebar .dropdown-menu { background-color: var(--clr-secondary); border: none; }
+        .sidebar .dropdown-item { color: white; padding: 8px 15px; font-size: 0.95rem; }
+        .sidebar .dropdown-item:hover { background-color: var(--clr-accent); }
+        .sidebar .dropdown-item.active { background-color: var(--clr-primary); font-weight: bold; }
+        .sidebar .dropdown-toggle.active { background-color: var(--clr-accent); }
+
+        .main-content { margin-left: 250px; flex-grow: 1; transition: margin-left 0.3s ease; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .header { background-color: white; padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0; }
+        .toggler { font-size: 1.5rem; color: var(--clr-secondary); cursor: pointer; }
+
+        /* --- Layout Chat --- */
+        .chat-layout { display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 70px); }
+
+        /* Panneau Liste Conversations */
+        .conversation-list-panel { width: 100%; border-right: 1px solid var(--clr-light-gray); display: flex; flex-direction: column; background-color: #ffffff; transition: transform 0.3s ease, width 0.3s ease; }
+        .conversation-list-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--clr-light-gray); flex-shrink: 0; }
+        .conversation-filters { display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; gap: 10px;}
+        .conversation-filters .form-check-label { font-size: 0.8rem; }
+        .conversations { overflow-y: auto; flex-grow: 1; }
+        .conversation-item { padding: 0.75rem 1rem; border-bottom: 1px solid var(--clr-light-gray); cursor: pointer; transition: background-color 0.2s ease; display: flex; align-items: center; gap: 10px; position: relative; } /* Added relative positioning */
+        .conversation-item.urgent::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: var(--clr-urgent-border); } /* Left border for urgent */
+        .conversation-item.archived { opacity: 0.7; background-color: #f8f9fa; }
+        .conversation-item:hover { background-color: var(--clr-light-gray); }
+        .conversation-item.active { background-color: var(--clr-primary-light, #ffe8de); border-left: 4px solid var(--clr-primary); }
+        .conversation-content { flex-grow: 1; overflow: hidden; }
+        .conversation-item .badge { font-size: 0.7em; }
+        .conv-title { font-size: 0.9em; font-weight: bold; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-title.unread { font-weight: 900; } /* Make title bold if unread */
+        .conv-details { font-size: 0.75em; color: #6c757d; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .last-message { font-size: 0.85em; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-meta { flex-shrink: 0; text-align: right; }
+        .conv-time { font-size: 0.75em; color: #888; }
+        .urgent-icon-list { color: var(--clr-urgent-border); font-size: 0.9em; margin-right: 3px;} /* Icon in list */
+
+        /* Panneau Chat */
+        .chat-panel { width: 100%; display: none; flex-direction: column; background-color: #ffffff; height: 100%; transition: transform 0.3s ease, width 0.3s ease; }
+        .chat-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--clr-light-gray); background-color: #f8f9fa; flex-shrink: 0; display: flex; align-items: center; gap: 5px; } /* Added gap */
+        .back-button { display: block; margin-right: 5px; }
+        .header-info { flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .header-info .main-id { font-weight: bold; }
+        .header-info .sub-details { font-size: 0.8em; color: #6c757d; }
+        .copy-btn { padding: 0.1rem 0.4rem; font-size: 0.7rem; line-height: 1; vertical-align: middle;} /* Style for copy buttons */
+        .call-btn { padding: 0.1rem 0.4rem; font-size: 0.9rem; line-height: 1; vertical-align: middle;} /* Style for call buttons */
+
+        .chat-messages { overflow-y: auto; flex-grow: 1; padding: 1rem; background-color: var(--clr-light-gray); }
+        .message { margin-bottom: 1rem; max-width: 80%; padding: 0.5rem 0.75rem; border-radius: 15px; word-wrap: break-word; }
+        .message-sent { background-color: var(--clr-primary); color: white; margin-left: auto; border-bottom-right-radius: 5px; }
+        .message-received { background-color: #ffffff; color: var(--clr-text); margin-right: auto; border: 1px solid #ddd; border-bottom-left-radius: 5px; }
+        .message-system { background-color: var(--clr-system-message); color: var(--clr-accent); font-style: italic; font-size: 0.85em; text-align: center; max-width: 100%; margin-left: auto; margin-right: auto; border: 1px dashed var(--clr-accent); }
+        .message-meta { font-size: 0.75em; color: #888; margin-top: 3px; }
+        .message-sent .message-meta { color: rgba(255, 255, 255, 0.7); text-align: right;}
+        .message-received .message-meta { text-align: left; }
+
+        .quick-reply-area { padding: 5px 1rem 0 1rem; background-color: #f8f9fa; flex-shrink: 0; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--clr-light-gray);}
+        .quick-reply-area .btn { margin-right: 5px; margin-bottom: 5px;}
+
+        .chat-input-area { padding: 0.75rem 1rem; border-top: 1px solid var(--clr-light-gray); background-color: #f8f9fa; flex-shrink: 0; display: flex; align-items: center; }
+        .chat-input-area textarea { resize: none; max-height: 100px; }
+        .chat-actions { margin-left: auto; padding-left: 10px; display: flex; gap: 5px; }
+
+        /* --- Responsive Styles --- */
+        .conversation-list-panel.show { display: flex; }
+        .chat-panel.show { display: flex; }
+        .conversation-list-panel:not(.show) { display: none; }
+        .chat-panel:not(.show) { display: none; }
+        @media (min-width: 768px) {
+            .conversation-list-panel { width: 35%; min-width: 350px; display: flex !important; transform: translateX(0) !important; } /* Wider list on desktop */
+            .chat-panel { width: 65%; display: flex !important; transform: translateX(0) !important; }
+            .back-button { display: none; }
+        }
+
+        /* --- Notifications --- */
+        #notification-container { position: fixed; top: 20px; right: 20px; z-index: 2000; width: 350px; max-width: 90%; }
+
+        /* --- Sidebar Responsive --- */
+        @media (max-width: 991.98px) { .sidebar { transform: translateX(-250px); } .sidebar.show { transform: translateX(0); } .main-content { margin-left: 0; } }
+        @media (min-width: 992px) { .sidebar.collapsed { transform: translateX(-250px); } .main-content.expanded { margin-left: 0; } }
+
+        /* --- Modale Edit Order Styles --- */
+         #editOrderFromSuivisModal .search-results { position: absolute; z-index: 1060; width: calc(100% - 1rem); background: white; border: 1px solid #ced4da; border-top: none; max-height: 150px; overflow-y: auto; border-radius: 0 0 5px 5px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+         #editOrderFromSuivisModal .search-results div { padding: 8px 12px; cursor: pointer; }
+         #editOrderFromSuivisModal .search-results div:hover { background-color: #f0f0f0; }
+         #editOrderFromSuivisModal .item-row { align-items: flex-end; }
+         #editOrderFromSuivisModal .remove-item-btn { background: none; border: none; color: #dc3545; font-size: 1.25rem; cursor: pointer; margin-left: 5px; padding: 0; line-height: 1; }
+         #editOrderFromSuivisModal .modal-dialog-scrollable .modal-body { max-height: 70vh; }
+
+
+    </style>
+</head>
+<body>
+    <div id="notification-container"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header d-flex justify-content-center">
+            <img src="wink-logo.png" alt="Logo WINK EXPRESS" style="width: 150px;">
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="dashboard.html"><i class="bi bi-speedometer2 me-2"></i> Tableau de bord</a>
+            <a class="nav-link" href="orders.html"><i class="bi bi-box-seam me-2"></i> Commandes</a>
+            <a class="nav-link" href="deliverymen.html"><i class="bi bi-bicycle me-2"></i> Livreurs</a>
+            <a class="nav-link" href="shops.html"><i class="bi bi-shop me-2"></i> Marchands</a>
+            <a class="nav-link" href="reports.html"><i class="bi bi-file-earmark-bar-graph me-2"></i> Rapports</a>
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="remittancesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-wallet me-2"></i> Versements
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="remittancesDropdown">
+                    <li><a class="dropdown-item" href="remittances.html">Versements en attente</a></li>
+                    <li><a class="dropdown-item" href="debts.html">Créances</a></li>
+                    <li><a class="dropdown-item" href="cash.html">Caisse</a></li>
+                </ul>
+            </div>
+             <a class="nav-link active" href="suivis.html">
+                <i class="bi bi-chat-dots me-2"></i> Suivis
+                <span class="badge bg-danger ms-auto d-none" id="global-unread-badge">0</span>
+            </a>
+            <a class="nav-link" href="users.html"><i class="bi bi-person me-2"></i> Utilisateurs</a>
+        </nav>
+    </aside>
+
+    <div class="main-content" id="main-content">
+        <header class="header">
+             <i class="bi bi-list toggler" id="sidebar-toggler"></i>
+            <h1 class="h4 mb-0 ms-3 flex-grow-1">Suivis des Commandes</h1>
+            <a href="#" class="btn btn-sm btn-outline-secondary me-3 d-none" id="manage-quick-replies-btn" title="Gérer les messages rapides"><i class="bi bi-lightning-charge-fill"></i> Gérer Rép. Rapides</a>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                    <span id="userName">Admin</span>
+                </a>
+                <ul class="dropdown-menu text-small shadow">
+                    <li><a class="dropdown-item" href="#" id="logoutBtn">Déconnexion</a></li>
+                </ul>
+            </div>
+        </header>
+
+        <div class="chat-layout">
+
+            <div class="conversation-list-panel show" id="conversation-list-panel">
+                <div class="conversation-list-header">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-0" placeholder="Rechercher (ID, Client, Marchand...)" id="conversation-search">
+                    </div>
+                    <div class="conversation-filters mt-2">
+                         <div class="form-check form-switch form-check-inline">
+                            <input class="form-check-input" type="checkbox" role="switch" id="filter-urgent">
+                            <label class="form-check-label" for="filter-urgent"><i class="bi bi-flag-fill text-danger"></i> Urgentes</label>
+                        </div>
+                        <div class="form-check form-switch form-check-inline">
+                            <input class="form-check-input" type="checkbox" role="switch" id="filter-archived">
+                            <label class="form-check-label" for="filter-archived"><i class="bi bi-archive"></i> Archivées</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="conversations list-group list-group-flush" id="conversation-list">
+                    <div class="p-5 text-center text-muted">Chargement des conversations...</div>
+                   </div>
+            </div>
+
+            <div class="chat-panel" id="chat-panel">
+                 <div id="chat-placeholder" class="d-flex flex-column justify-content-center align-items-center h-100 text-muted">
+                      <i class="bi bi-chat-square-dots display-1"></i>
+                      <p class="mt-3">Sélectionnez une conversation pour afficher les messages.</p>
+                 </div>
+
+                 <div id="chat-content" class="d-none flex-column h-100">
+                    <div class="chat-header">
+                        <button class="btn btn-sm btn-outline-secondary back-button" id="back-to-list-btn"><i class="bi bi-arrow-left"></i></button>
+                        <div class="header-info me-2">
+                            <span class="main-id">#<span id="chat-header-order-id"></span></span>
+                            <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn" data-copy-target="#chat-header-order-id" title="Copier ID Commande"><i class="bi bi-clipboard"></i></button>
+                            <div class="sub-details" id="chat-header-details">Client: <span id="chat-client-phone">...</span> <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn d-none" id="copy-client-phone-btn" title="Copier Tél. Client"><i class="bi bi-clipboard"></i></button> | Marchand: <span id="chat-shop-name">...</span> | Livreur: <span id="chat-deliveryman-name">...</span> <button class="btn btn-sm btn-outline-secondary ms-1 copy-btn d-none" id="copy-livreur-phone-btn" title="Copier Tél. Livreur"><i class="bi bi-clipboard"></i></button></div>
+                        </div>
+                        <a href="#" id="call-client-btn" class="btn btn-sm btn-outline-success call-btn d-none" title="Appeler Client"><i class="bi bi-telephone-fill"></i> <span class="d-none d-md-inline">Client</span></a>
+                        <a href="#" id="call-livreur-btn" class="btn btn-sm btn-outline-info call-btn d-none" title="Appeler Livreur"><i class="bi bi-telephone-fill"></i> <span class="d-none d-md-inline">Livreur</span></a>
+                        <div class="chat-actions d-none ms-2" id="chat-admin-actions">
+                             <button class="btn btn-sm btn-outline-danger" id="toggle-urgent-btn" title="Marquer Urgent"><i class="bi bi-flag"></i></button>
+                             <button class="btn btn-sm btn-outline-primary" id="reassign-btn" title="Réassigner"><i class="bi bi-person-check"></i></button>
+                             <button class="btn btn-sm btn-outline-info" id="edit-order-btn" title="Modifier la commande"><i class="bi bi-pencil-square"></i></button>
+                             <button class="btn btn-sm btn-outline-warning" id="reset-status-btn" title="Réinitialiser Statut"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        </div>
+                    <div class="quick-reply-area" id="quick-reply-buttons">
+                        </div>
+                    <div class="chat-input-area">
+                        <textarea class="form-control form-control-sm me-2" id="message-input" placeholder="Écrire un message..." rows="1"></textarea>
+                        <button class="btn btn-primary-custom btn-sm" id="send-message-btn"><i class="bi bi-send"></i></button>
+                    </div>
+                 </div>
+            </div>
+
+        </div></div><div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-sm">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="reassignModalLabel">Réassigner la Commande</h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                 </div>
+                 <div class="modal-body">
+                     <label for="reassign-deliveryman-select" class="form-label">Choisir le nouveau livreur :</label>
+                     <select class="form-select form-select-sm" id="reassign-deliveryman-select" required>
+                         <option value="">Chargement...</option>
+                     </select>
+                 </div>
+                 <div class="modal-footer">
+                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                     <button type="button" class="btn btn-primary" id="confirm-reassign-btn">Confirmer</button>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+     <div class="modal fade" id="editOrderFromSuivisModal" tabindex="-1" aria-labelledby="editOrderFromSuivisModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 700px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editOrderFromSuivisModalLabel">Modifier Commande #<span id="editOrderModalOrderId"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editOrderFromSuivisForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editOrderModal_Id">
+                        <input type="hidden" id="editOrderModal_DeliverymanId">
+
+                        <div class="mb-2">
+                            <label for="editOrderModal_ShopSearchInput" class="form-label mb-1">Marchand</label>
+                            <div class="search-container position-relative"> {/* Ajout position relative */}
+                                <input type="text" class="form-control form-control-sm" id="editOrderModal_ShopSearchInput" placeholder="Rechercher un marchand" required>
+                                <div id="editOrderModal_SearchResults" class="search-results d-none"></div>
+                                <input type="hidden" id="editOrderModal_SelectedShopId">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-2">
+                                <label for="editOrderModal_CustomerName" class="form-label mb-1">Nom du client</label>
+                                <input type="text" class="form-control form-control-sm" id="editOrderModal_CustomerName">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label for="editOrderModal_CustomerPhone" class="form-label mb-1">Numéro de tél. du client</label>
+                                <input type="tel" class="form-control form-control-sm" id="editOrderModal_CustomerPhone" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="editOrderModal_DeliveryLocation" class="form-label mb-1">Lieu de livraison</label>
+                            <input type="text" class="form-control form-control-sm" id="editOrderModal_DeliveryLocation" required>
+                        </div>
+                        <div class="mb-2">
+                            <label for="editOrderModal_CreatedAt" class="form-label mb-1">Date et heure de la commande</label>
+                            <input type="datetime-local" class="form-control form-control-sm" id="editOrderModal_CreatedAt" required>
+                        </div>
+
+                        <hr class="my-3">
+                        <h6 class="d-flex justify-content-between align-items-center mb-2">
+                            Articles
+                            <button type="button" class="btn btn-secondary btn-sm" id="editOrderModal_AddItemBtn">
+                                <i class="bi bi-plus-circle"></i> Ajouter
+                            </button>
+                        </h6>
+                        <div id="editOrderModal_ItemsContainer">
+                        </div>
+                        <hr class="my-3">
+
+                        <div class="mb-2 form-check">
+                            <input class="form-check-input" type="checkbox" id="editOrderModal_IsExpedition">
+                            <label class="form-check-label" for="editOrderModal_IsExpedition">C'est une expédition</label>
+                        </div>
+                        <div id="editOrderModal_ExpeditionFeeContainer" class="mb-2" style="display: none;">
+                            <label for="editOrderModal_ExpeditionFee" class="form-label mb-1">Frais d'expédition</label>
+                            <input type="number" class="form-control form-control-sm" id="editOrderModal_ExpeditionFee" value="0" min="0">
+                        </div>
+                        <div class="mb-2">
+                            <label for="editOrderModal_DeliveryFee" class="form-label mb-1">Frais de livraison</label>
+                            <input type="number" class="form-control form-control-sm" id="editOrderModal_DeliveryFee" value="0" min="0" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary-custom">Enregistrer Modifications</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/suivis.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="/js/pwa-loader.js" defer></script>
+</body>
+</html>

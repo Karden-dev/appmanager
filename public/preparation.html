@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WINK EXPRESS - Logistique Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#FF7F50">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/wink-icon-192x192.png">
+    <meta name="apple-mobile-web-app-status-bar" content="#2C3E50">
+    <style>
+        :root {
+            --clr-primary: #FF7F50;
+            --clr-secondary: #2C3E50;
+            --clr-accent: #4A6491;
+            --clr-background: #F8F9FA;
+            --clr-text: #34495E;
+            --clr-ready: #0dcaf0; /* Bleu info/ciel pour "Prêt" */
+            --clr-ready-text: #0d6efd;
+            --clr-return: #dc3545; /* Rouge pour Retour */
+        }
+        body { background-color: var(--clr-background); font-family: sans-serif; display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        /* --- Styles Sidebar & Header (Inchangés) --- */
+        .sidebar { width: 250px; background-color: var(--clr-secondary); min-height: 100vh; position: fixed; top: 0; left: 0; color: white; padding: 20px; transition: transform 0.3s ease; z-index: 1050; }
+        .sidebar-header { padding-bottom: 20px; border-bottom: 1px solid var(--clr-accent); margin-bottom: 20px; }
+        .sidebar .nav-link { color: white; padding: 10px 15px; margin-bottom: 5px; border-radius: 5px; transition: background-color 0.2s; }
+        .sidebar .nav-link:hover { background-color: var(--clr-accent); }
+        .sidebar .nav-link.active { background-color: var(--clr-primary); }
+        .main-content { margin-left: 250px; padding: 20px; flex-grow: 1; transition: margin-left 0.3s ease; display: flex; flex-direction: column; position: relative; }
+        @media (max-width: 991.98px) { .sidebar { transform: translateX(-250px); } .sidebar.show { transform: translateX(0); } .main-content { margin-left: 0; } }
+        @media (min-width: 992px) { .sidebar.collapsed { transform: translateX(-250px); } .main-content.expanded { margin-left: 0; } }
+        .header { background-color: white; padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .toggler { font-size: 1.5rem; color: var(--clr-secondary); cursor: pointer; }
+        #notification-container { position: fixed; top: 20px; right: 20px; z-index: 2000; width: 350px; max-width: 90%; }
+        .btn-primary-custom { background-color: var(--clr-primary); border-color: var(--clr-primary); color: white; }
+        .btn-primary-custom:hover { background-color: #FF6347; border-color: #FF6347; }
+        
+        /* --- NOUVEAU: Style d'onglets (type cash.html) --- */
+        .hub-nav-tabs {
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        .hub-nav-tabs .nav-link {
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--clr-secondary);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            margin-bottom: -2px; /* Aligner avec la bordure inférieure */
+            transition: all 0.2s ease;
+        }
+        .hub-nav-tabs .nav-link.active {
+            color: var(--clr-primary);
+            border-color: var(--clr-primary);
+            background-color: transparent;
+        }
+        .hub-nav-tabs .nav-link:hover {
+            color: var(--clr-primary);
+            border-bottom-color: var(--clr-primary-light, #ffd8c7);
+        }
+
+        /* --- Styles Préparation --- */
+        .deliveryman-group { background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 1rem; overflow: hidden; }
+        .deliveryman-header { background-color: var(--clr-accent); color: white; padding: 0.75rem 1rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; padding: 1rem; }
+        .order-card-prep { border: 1px solid #eee; border-radius: 8px; padding: 1rem; background-color: #fff; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; transition: box-shadow 0.2s ease, opacity 0.3s ease; }
+        .order-card-prep.is-ready { background-color: #e3f2fd; border-left: 4px solid var(--clr-ready); opacity: 0.8; }
+        .order-card-prep.is-ready .order-id { color: var(--clr-ready-text); }
+        .order-card-prep .order-id { font-weight: bold; color: var(--clr-primary); display: flex; justify-content: space-between; align-items: center; }
+        .order-card-prep .shop-name { font-style: italic; color: #555; }
+        .order-card-prep .customer-info { color: #6c757d; }
+        .order-card-prep .items-list { font-size: 0.8rem; padding-left: 1rem; margin-bottom: 0.5rem; max-height: 80px; overflow-y: auto; }
+        .order-card-prep .items-list li { margin-bottom: 2px; }
+        .order-card-prep .btn-ready { width: 100%; margin-top: auto; }
+        .order-card-prep .btn-ready.disabled { background-color: var(--clr-ready); border-color: var(--clr-ready); color: white; }
+        .btn-edit-items { font-size: 0.8rem; }
+        
+        /* --- Styles Retours --- */
+        .returns-section .filter-bar { background-color: #fff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .returns-table thead th { font-size: 0.8rem; white-space: nowrap; }
+        .returns-table tbody td { font-size: 0.8rem; white-space: nowrap; vertical-align: middle; }
+
+        /* --- Modale Édition Articles --- */
+        .item-row-modal { align-items: flex-end; }
+        .remove-item-btn-modal { background: none; border: none; color: #dc3545; font-size: 1.25rem; cursor: pointer; padding: 0; line-height: 1; }
+    </style>
+</head>
+<body>
+    <div id="notification-container"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header d-flex justify-content-center">
+            <img src="wink-logo.png" alt="Logo WINK EXPRESS" style="width: 150px;">
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="dashboard.html"><i class="bi bi-speedometer2"></i> Tableau de bord</a>
+            <a class="nav-link" href="orders.html"><i class="bi bi-box-seam"></i> Commandes</a>
+            <a class="nav-link active" href="preparation.html"><i class="bi bi-box-arrow-in-up"></i> Logistique Hub</a> 
+            <a class="nav-link" href="deliverymen.html"><i class="bi bi-bicycle"></i> Livreurs</a>
+            <a class="nav-link" href="shops.html"><i class="bi bi-shop"></i> Marchands</a>
+            <a class="nav-link" href="reports.html"><i class="bi bi-file-earmark-bar-graph"></i> Rapports</a>
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="remittancesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-wallet"></i> Versements
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="remittancesDropdown">
+                    <li><a class="dropdown-item" href="remittances.html">Versements en attente</a></li>
+                    <li><a class="dropdown-item" href="debts.html">Créances</a></li>
+                    <li><a class="dropdown-item" href="cash.html">Caisse</a></li>
+                </ul>
+            </div>
+            <a class="nav-link" href="suivis.html">
+                <i class="bi bi-chat-dots me-2"></i> Suivis
+                <span class="badge bg-danger ms-auto d-none" id="global-unread-badge">0</span>
+            </a>
+            <a class="nav-link" href="users.html"><i class="bi bi-person"></i> Utilisateurs</a>
+        </nav>
+    </aside>
+
+    <main class="main-content" id="main-content">
+        <header class="header">
+            <i class="bi bi-list toggler" id="sidebar-toggler"></i>
+            <h1 class="h4 mb-0 ms-3 flex-grow-1">Logistique Hub</h1>
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=A&size=32&background=2C3E50&color=fff&rounded=true" alt="Avatar" width="32" height="32" class="rounded-circle me-2">
+                    <span id="userName">Admin</span>
+                </a>
+                <ul class="dropdown-menu text-small shadow">
+                    <li><a class="dropdown-item" href="#" id="logoutBtn">Déconnexion</a></li>
+                </ul>
+            </div>
+        </header>
+
+        <ul class="nav hub-nav-tabs" id="hubTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="preparation-tab" data-bs-toggle="tab" data-bs-target="#preparation-panel" type="button" role="tab">
+                    <i class="bi bi-box-seam me-1"></i> Préparation Colis (<span id="prepCount">0</span>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-panel" type="button" role="tab">
+                    <i class="bi bi-box-arrow-left me-1"></i> Gestion des Retours (<span id="returnCount">0</span>)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content flex-grow-1" id="hubTabContent">
+
+            <div class="tab-pane fade show active" id="preparation-panel" role="tabpanel" aria-labelledby="preparation-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Commandes à Préparer/Vérifier</h5>
+                    <button class="btn btn-sm btn-outline-primary" id="refreshPrepBtn"><i class="bi bi-arrow-clockwise"></i> Actualiser</button>
+                </div>
+                <div class="alert alert-info d-flex align-items-center small" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                        Affichez les commandes assignées (`in_progress`) et celles prêtes (`ready_for_pickup`) non encore récupérées.
+                    </div>
+                </div>
+                <div id="preparation-container" class="preparation-section">
+                    <div id="loading-prep" class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="returns-panel" role="tabpanel" aria-labelledby="returns-tab">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Retours en Attente de Réception Hub</h5>
+                </div>
+                <div class="filter-bar returns-section">
+                    <form id="returnFiltersForm" class="row g-2 align-items-end">
+                        <div class="col-md-3 col-sm-6">
+                            <label for="returnStatusFilter" class="form-label small mb-0">Statut Suivi</label>
+                            <select class="form-select form-select-sm" id="returnStatusFilter">
+                                <option value="pending_return_to_hub" selected>En attente Hub</option>
+                                <option value="received_at_hub">Confirmé Hub</option>
+                                <option value="all">Tous (Déclarés)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label for="returnDeliverymanFilter" class="form-label small mb-0">Livreur</label>
+                            <select class="form-select form-select-sm" id="returnDeliverymanFilter">
+                                <option value="">Tous les livreurs</option>
+                                </select>
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <label for="returnStartDate" class="form-label small mb-0">Du</label>
+                            <input type="date" class="form-control form-control-sm" id="returnStartDate">
+                        </div>
+                        <div class="col-md-2 col-sm-6">
+                            <label for="returnEndDate" class="form-label small mb-0">Au</label>
+                            <input type="date" class="form-control form-control-sm" id="returnEndDate">
+                        </div>
+                        <div class="col-md-2 col-sm-12 d-grid">
+                            <button type="submit" class="btn btn-sm btn-secondary"><i class="bi bi-funnel"></i> Filtrer</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card returns-section">
+                    <div class="table-responsive">
+                        <table class="table table-striped returns-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tracking ID</th>
+                                    <th>Cde ID</th>
+                                    <th>Livreur</th>
+                                    <th>Marchand</th>
+                                    <th>Date Décl.</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="returnsTableBody">
+                                <tr><td colspan="7" class="text-center p-3" id="loading-returns">Chargement des retours...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div> </main>
+    
+    <div class="modal fade" id="editItemsModal" tabindex="-1" aria-labelledby="editItemsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editItemsModalLabel">Vérifier/Modifier Articles Cde #<span id="editItemsOrderId"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="editItemsForm">
+            <div class="modal-body">
+                <div class="alert alert-warning small">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Modifiez ici les quantités ou noms d'articles si le colis physique diffère. Le montant total de la commande sera recalculé.
+                </div>
+                <input type="hidden" id="editItems_OrderId_Hidden">
+                
+                <h6 class="d-flex justify-content-between align-items-center mb-2">
+                    Articles
+                    <button type="button" class="btn btn-secondary btn-sm" id="modalAddItemBtn">
+                        <i class="bi bi-plus-circle"></i> Ajouter Ligne
+                    </button>
+                </h6>
+                <div id="modalItemsContainer">
+                    </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="modalDeliveryFee" class="form-label">Frais de livraison (Optionnel)</label>
+                        <input type="number" class="form-control" id="modalDeliveryFee" min="0">
+                    </div>
+                     <div class="col-md-6">
+                        <label for="modalExpeditionFee" class="form-label">Frais d'expédition (Optionnel)</label>
+                        <input type="number" class="form-control" id="modalExpeditionFee" min="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="submit" class="btn btn-primary-custom" id="saveItemsAndMarkReadyBtn">
+                <i class="bi bi-check-lg me-1"></i> Sauvegarder et Marquer Prête
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/preparation.js"></script> <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="/js/pwa-loader.js" defer></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarToggler = document.getElementById('sidebar-toggler');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+
+            if (sidebarToggler && sidebar && mainContent) {
+                sidebarToggler.addEventListener('click', () => {
+                    if (window.innerWidth < 992) {
+                        try {
+                            const offcanvas = bootstrap.Offcanvas.getInstance(sidebar) || new bootstrap.Offcanvas(sidebar);
+                            offcanvas.toggle();
+                        } catch (e) {
+                            sidebar.classList.toggle('show');
+                        }
+                    } else {
+                        sidebar.classList.toggle('collapsed');
+                        mainContent.classList.toggle('expanded');
+                    }
+                });
+            }
+
+             // --- Highlight Active Link ---
+             const currentPath = window.location.pathname.split('/').pop() || 'preparation.html';
+             document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                 link.classList.remove('active');
+                 const dropdownItem = link.closest('.dropdown-menu')?.querySelector(`.dropdown-item[href="${currentPath}"]`);
+                 if (dropdownItem) {
+                     dropdownItem.classList.add('active');
+                     link.classList.add('active');
+                 } else if (link.getAttribute('href') === currentPath) {
+                     link.classList.add('active');
+                 }
+             });
+        });
+    </script>
+</body>
+</html>

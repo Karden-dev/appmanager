@@ -1,0 +1,42 @@
+name: wink_manager
+description: "Application de gestion pour WINK EXPRESS."
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Gestion d'état
+  provider: ^6.1.2 
+
+  # Appels réseau (API)
+  # Nous ajoutons DIO car votre auth_service.dart l'utilise
+  dio: ^5.4.3+1 
+  http: ^1.2.1 
+
+  # Communication WebSocket pour le chat/notifications en temps réel
+  web_socket_channel: ^3.0.0 # <-- AJOUTÉ pour l'écran Suivis/Chat Admin
+
+  # Formatage (Dates, Nombres)
+  intl: ^0.19.0
+
+  # Stockage local
+  shared_preferences: ^2.2.3
+
+  # --- AJOUTÉ POUR LES ACTIONS D'APPEL ---
+  url_launcher: ^6.3.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

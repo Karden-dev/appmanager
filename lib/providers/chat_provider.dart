@@ -291,14 +291,7 @@ class ChatProvider with ChangeNotifier {
 
         await _chatRepository.clearConversationCache();
         await _chatRepository.cacheConversations(apiConversations);
-
-        apiConversations.sort((a, b) {
-            if (a.isUrgent != b.isUrgent) return a.isUrgent ? -1 : 1;
-            final timeA = a.lastMessageTime ?? DateTime.fromMicrosecondsSinceEpoch(0);
-            final timeB = b.lastMessageTime ?? DateTime.fromMicrosecondsSinceEpoch(0);
-            return timeB.compareTo(timeA); 
-        });
-
+    
         _conversations = apiConversations;
         _conversationError = null; // Succès, on efface l'erreur
       
